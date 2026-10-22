@@ -1,0 +1,12 @@
+{
+  "name": "ux-arena",
+  "private": true,
+  "scripts": {
+    "check:js": "node scripts/check-js.mjs",
+    "test:e2e": "playwright test",
+    "verify": "npm run check:js && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0"
+  }
+}
