@@ -4,7 +4,8 @@
   "scripts": {
     "check:js": "node scripts/check-js.mjs",
     "test:e2e": "playwright test",
-    "verify": "npm run check:js && npm run test:e2e"
+    "verify": "npm run check:js && npm run test:statistics && npm run test:e2e",
+    "test:statistics": "node --test tests/statistics/*.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0"
