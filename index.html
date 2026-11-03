@@ -970,8 +970,8 @@ function nextExperimentSuggestion(){
 
 let analysisFilter='all';
 let qualityFilter='valid';
-function filteredSessions(){
-  let s=state.sessions.filter(x=>isCurrentRunSession(x) && x.status==='completed' && (x.selected==='A'||x.selected==='B') && (!x.runnerVersion || Number(x.elapsed)<=RUNNER_LIMIT));
+function filteredSessions({includeTimeout=false}={}){
+  let s=state.sessions.filter(x=>isCurrentRunSession(x) && ((includeTimeout && x.status==='timeout') || (x.status==='completed' && (x.selected==='A'||x.selected==='B') && (!x.runnerVersion || Number(x.elapsed)<=RUNNER_LIMIT))));
   if(qualityFilter==='valid')s=s.filter(x=>x.qualityValid===undefined?sessionQuality(x).valid:x.qualityValid);
   return analysisFilter==='all'?s:s.filter(x=>(x.experience||'standard')===analysisFilter);
 }
@@ -1289,7 +1289,7 @@ function intuitionMetrics(rows){
 }
 function renderIntuitionPanel(){
  const el=$('#intuitionPanel');if(!el)return;
- const rows=filteredSessions().filter(x=>x.runnerVersion>=22 && (x.status==='completed'||x.status==='timeout'));
+ const rows=filteredSessions({includeTimeout:true}).filter(x=>x.runnerVersion>=22 && (x.status==='completed'||x.status==='timeout'));
  const ids=(state.tests||[]).filter(t=>t.status!=='archived').map(t=>String(t.id));
  const query=String($('#intuitionSearch')?.value||'').trim().toLocaleLowerCase();
  const statusFilter=$('#intuitionStatus')?.value||'all';
@@ -1461,7 +1461,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&document.b
 $('#intuitionSearch').addEventListener('input',renderIntuitionPanel);
 $('#intuitionStatus').addEventListener('change',renderIntuitionPanel);
 $('#exportIntuition').addEventListener('click',()=>{
- const rows=filteredSessions().filter(x=>x.runnerVersion>=22&&(x.status==='completed'||x.status==='timeout'));
+ const rows=filteredSessions({includeTimeout:true}).filter(x=>x.runnerVersion>=22&&(x.status==='completed'||x.status==='timeout'));
  const report={schema:'ux-arena-intuition-v2',generatedAt:new Date().toISOString(),experiments:(state.tests||[]).filter(t=>t.status!=='archived').map(t=>({testId:t.id,name:t.name||t.title||'',metrics:intuitionMetrics(rows.filter(x=>String(x.testId||'')===String(t.id)))}))};
  const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='ux-arena-intuition.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);

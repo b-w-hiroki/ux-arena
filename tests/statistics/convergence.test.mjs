@@ -38,3 +38,20 @@ assert.equal(insufficient.stable,false);
 assert.equal(concentration.stable,false);
 assert.equal(calculate([...dataset({mode:'stable'}),{runnerVersion:91,status:'timeout',id:'timeout'}]).valid,128);
 console.log(JSON.stringify({stable:stable.stable,balanced:balanced.stable,reverse:reverse.reversed,positionBias:bias.biased,insufficient:insufficient.stable,concentration:concentration.stable}));
+
+// Regression through production selection + metrics, using the browser fixture.
+const {fixture}=await import('../fixtures/intuition.mjs');
+const state=fixture();
+const selection=html.slice(html.indexOf('function filteredSessions('),html.indexOf('function filteredTestSessions('));
+const currentRun=html.slice(html.indexOf('function isCurrentRunSession('),html.indexOf('function completedSessionsFor('));
+const quality=html.slice(html.indexOf('function sessionQuality('),html.indexOf('function weightedBRate('));
+const select=runInNewContext(currentRun+quality+selection+';filteredSessions', {state,qualityFilter:'valid',analysisFilter:'standard',RUNNER_LIMIT:10000});
+for(const t of state.tests){
+ const rows=select({includeTimeout:true}).filter(x=>x.testId===t.id);
+ const m=calculate(rows);
+ assert.equal(m.valid,128);assert.equal(m.timeout,t.id==='slow'?64:16);
+ assert.equal(m.within,128/(128+m.timeout));assert.equal(m.participants,16);
+ assert.equal(m.stable,t.id==='stable');assert.equal(m.biased,t.id==='biased');assert.equal(m.reversed,t.id==='reverse');
+ assert.equal(m.positionEffect,t.id==='biased'?1:0);
+ assert.equal(select().filter(x=>x.testId===t.id).length,128);
+}
