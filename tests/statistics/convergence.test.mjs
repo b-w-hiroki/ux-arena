@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import assert from 'node:assert/strict';
-const html=readFileSync('index.html','utf8');
+const html=readFileSync('assets/app.js','utf8');
 const start=html.indexOf('function intuitionMetrics(rows){');
 const end=html.indexOf('function renderIntuitionPanel()',start);
 assert(start>=0&&end>start,'production intuitionMetrics not found');
