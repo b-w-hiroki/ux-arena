@@ -6,10 +6,9 @@ for(const viewport of [{width:390,height:844},{width:320,height:568}]){
   await page.setViewportSize(viewport);
   const saved=fixture();
   await page.addInitScript(data=>localStorage.setItem('ux_arena_v6',JSON.stringify(data)),saved);
-  await page.goto('/');
+  await page.goto('/admin.html');
   // Exercise the actual filter handlers before opening the admin screen.
   await page.locator('#analysisFilters [data-filter="standard"]').dispatchEvent('click');
-  await page.locator('#adminMode').click();
   await page.locator('#adminTopNav [data-target="a-analysis"]').click();
   const panel=(name:string)=>page.locator('.intuition-experiment').filter({has:page.getByRole('heading',{name,exact:true})});
   const value=(name:string,label:string)=>panel(name).locator('.insight-metric').filter({has:page.locator('span',{hasText:new RegExp('^'+label+'$')})}).locator('strong');
