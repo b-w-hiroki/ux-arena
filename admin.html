@@ -158,7 +158,15 @@ body.runner-active .variant .mock-title{line-height:1.25}
   </section>
 
   <section id="a-tests" class="screen">
+
     <div class="hero"><div class="kicker">ADMIN / TESTS</div><h1>テスト管理</h1><p>標準テストをベースに追加できます。</p></div>
+    <div class="card handoff-card">
+      <div class="kicker">RESEARCH HANDOFF</div><h2>配布 → 回答回収</h2>
+      <p class="small">配信中の実験をファイルで参加者へ配布。返ってきた回答を既存データに追加できます。同じ回答は重複集計しません。自動同期・自動送信はしません。</p>
+      <div class="handoff-actions"><button class="primary" id="exportStudyBtn" type="button">配布用の実験を保存</button><button class="secondary" id="importAnswersBtn" type="button">回答ファイルを追加</button></div>
+      <input id="handoffFile" type="file" accept=".json,application/json" hidden>
+      <p id="handoffStatus" class="small" role="status" aria-live="polite"></p>
+    </div>
     <div class="statgrid">
       <div class="stat"><span>配信中</span><b id="runningCount">0</b></div>
       <div class="stat"><span>完了</span><b id="completedCount">0</b></div>
@@ -303,6 +311,7 @@ body.runner-active .variant .mock-title{line-height:1.25}
 
   <section id="a-admin" class="screen">
     <div class="hero"><div class="kicker">ADMIN / SETTINGS</div><h1>管理</h1></div>
+
     <div class="card">
       <div class="option"><span>保存先</span><b>Local</b></div>
       <div class="option"><span>匿名化</span><b>ON</b></div>
@@ -338,6 +347,7 @@ body.runner-active .variant .mock-title{line-height:1.25}
 </nav>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+<script src="assets/transport.js" defer></script>
 <script src="assets/app.js" defer></script>
 </body>
 </html>

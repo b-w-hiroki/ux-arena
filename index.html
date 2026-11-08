@@ -127,7 +127,16 @@ body.runner-active .variant .mock-title{line-height:1.25}
   </section>
 
   <section id="p-mine" class="screen">
+
     <div class="hero"><div class="kicker">MY DATA</div><h1>マイデータ</h1></div>
+    <div class="card handoff-card">
+      <div class="kicker">RESEARCH HANDOFF</div><h2>研究者とデータを受け渡す</h2>
+      <p class="small">① 研究者から届いた実験ファイルを読み込み、テストに参加。② 回答ファイルを保存して研究者に渡してください。自動送信はしません。</p>
+      <div class="handoff-actions"><button class="primary" id="importStudyBtn" type="button">実験ファイルを読み込む</button><button class="secondary" id="exportAnswersBtn" type="button">自分の回答を保存</button></div>
+      <input id="handoffFile" type="file" accept=".json,application/json" hidden>
+      <p class="small">回答には匿名の参加者ID・回答内容・操作時間・端末種別・経験区分が含まれます。現在の実験世代のみが対象です。</p>
+      <p id="handoffStatus" class="small" role="status" aria-live="polite"></p>
+    </div>
     <div class="card">
       <div class="option"><span>参加回数</span><b id="myCount">0</b></div>
       <div class="option"><span>端末</span><b id="deviceType">—</b></div>
@@ -154,6 +163,7 @@ body.runner-active .variant .mock-title{line-height:1.25}
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+<script src="assets/transport.js" defer></script>
 <script src="assets/app.js" defer></script>
 </body>
 </html>

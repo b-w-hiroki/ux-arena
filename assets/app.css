@@ -131,3 +131,10 @@ body.runner-active .runner-count{font-variant-numeric:tabular-nums}
 @media(prefers-reduced-motion:reduce){.runner-active *, .runner-active *::before,.runner-active *::after{transition:none!important;animation:none!important}}
 @media(max-height:570px){body.runner-active .runner-head{height:34px}body.runner-active .mock-price{margin:2px 0}body.runner-active .mock-title{margin:2px 0}body.runner-active .mock-copy{display:none}body.runner-active .mock-cta{min-height:44px}}
 @supports (height: 100dvh) {body.runner-active #testStage {height:100dvh;max-height:100dvh}}
+
+/* Handoff actions stay outside the timed test runner. */
+.handoff-card { border-inline-start: 3px solid #19a783; }
+.handoff-card h2 { font-size: 1.1rem; margin: .6rem 0; }
+.handoff-card p { line-height: 1.7; overflow-wrap: anywhere; }
+.handoff-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
+.handoff-actions button { flex: 1 1 160px; min-height: 44px; white-space: normal; }

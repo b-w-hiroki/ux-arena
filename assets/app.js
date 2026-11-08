@@ -78,7 +78,7 @@ function show(id){
  }
  $$('.screen').forEach(x=>x.classList.remove('active'));$('#'+id).classList.add('active');$$('.nav button,.topnav button').forEach(b=>b.classList.toggle('active',b.dataset.target===id));if(id==='p-test')renderParticipant();if(id==='p-results')refreshStats();if(id==='a-tests')renderAdminTests();if(id==='a-analysis'){renderAnalysis();renderHealth();renderSegmentInsights();renderCohortMatrix();renderDesignCheck();renderDecisionLog();renderReport();}if(id==='a-library'){renderLibrary();renderBenchmark();renderAdoptedPatterns();renderTemplateLibrary();}return true;}
 function setMode(m){if(pendingRecovery){showSaveFailure();return false;}const a=m==='admin',target=a?'a-tests':'p-test';if(document.body.classList.contains('runner-active')&&show(target)===false)return false;$('#participantMode').classList.toggle('active',!a);$('#adminMode').classList.toggle('active',a);$('#participantNav').classList.toggle('hidden',a);$('#adminNav').classList.toggle('hidden',!a);$('#participantTopNav').classList.toggle('hidden',a);$('#adminTopNav').classList.toggle('hidden',!a);if(!$('#'+target).classList.contains('active'))return show(target);return true}
-function pubs(){normalizeAllStatuses();return state.tests.filter(t=>t.status==='running' && t.published)}
+function pubs(){normalizeAllStatuses();return state.tests.filter(t=>t.status==='running' && t.published && (IS_ADMIN||!state.distributedTestIds||state.distributedTestIds.includes(t.id)))}
 
 function detectDevice(){
   const w=Math.min(window.innerWidth||999,screen.width||999);
@@ -1215,6 +1215,35 @@ $('#exportSnapshots').onclick=()=>{
 
 $('#exportData').onclick=()=>{const blob=new Blob([JSON.stringify(pendingRecovery||state,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ux-arena-v79-data.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)};
 }
+
+// Manual handoff: validate fully, persist candidate, then publish it to the UI.
+const handoffStatus=$('#handoffStatus'),handoffFile=$('#handoffFile');
+function handoffMessage(message){if(handoffStatus)handoffStatus.textContent=message;}
+function handoffGuard(){if(pendingRecovery||startedAt||document.body.classList.contains('runner-active'))throw Error('進行中のテスト・未保存データを先に完了してください');}
+function handoffDownload(packet,name){
+ handoffGuard();const url=URL.createObjectURL(new Blob([JSON.stringify(packet,null,2)],{type:'application/json'}));
+ const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ handoffMessage('ファイルの保存を開始しました。自動送信はされません。');
+}
+function handoffAction(id,fn){const button=$(id);if(button)button.onclick=()=>{try{handoffGuard();fn();}catch(e){handoffMessage(e.message);}};}
+handoffAction('#exportStudyBtn',()=>handoffDownload(ArenaTransport.study(pubs()),'ux-arena-study.json'));
+handoffAction('#exportAnswersBtn',()=>handoffDownload(ArenaTransport.answers(state),'ux-arena-answers.json'));
+handoffAction('#importStudyBtn',()=>handoffFile.click());
+handoffAction('#importAnswersBtn',()=>handoffFile.click());
+if(handoffFile)handoffFile.onchange=async()=>{
+ const file=handoffFile.files[0];if(!file)return;
+ try{
+  handoffGuard();if(file.size>5*1024*1024)throw Error('ファイルは5MB以下にしてください');
+  const packet=JSON.parse(await file.text());handoffGuard();
+  const result=IS_ADMIN?ArenaTransport.mergeAnswers(state,packet):{state:ArenaTransport.importStudy(state,packet)};
+  // No mutation or success notice before durable storage succeeds.
+  try{localStorage.setItem(STORAGE,JSON.stringify(result.state));}catch(e){throw Error('保存できなかったため追加していません。空き容量・ブラウザ設定を確認し、同じファイルで再試行してください');}
+  state=result.state;currentTestId=null;refreshAll();renderParticipant();
+  handoffMessage(IS_ADMIN?('回答 '+result.added+'件を追加、重複 '+result.duplicate+'件はスキップしました。'):('実験 '+packet.tests.length+'件を準備しました。「テスト」から参加できます。'));
+ }catch(e){handoffMessage('読み込みできませんでした：'+e.message);}
+ finally{handoffFile.value='';}
+};
+
 restoreRecoveryJournal();
 refreshAll();renderParticipant();
 if(IS_ADMIN&&!pendingRecovery)setMode('admin');
