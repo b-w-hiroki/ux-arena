@@ -1139,14 +1139,16 @@ $('#importDataFile').onchange=async(e)=>{
       return;
     }
     const currentId=state.participantId;
-    state={
+    const next={
       participantId:currentId||parsed.participantId||uid(),
       profile:state.profile||parsed.profile||{experience:'standard',device:detectDevice()},
       tests:parsed.tests,
       sessions:parsed.sessions,
       decisionLog:Array.isArray(parsed.decisionLog)?parsed.decisionLog:[],snapshots:Array.isArray(parsed.snapshots)?parsed.snapshots:[],backups:Array.isArray(parsed.backups)?parsed.backups:[]
     };
-    save();
+    if(pendingRecovery) throw new Error("pending recovery");
+    localStorage.setItem(STORAGE,JSON.stringify(next));
+    state=next;
     currentTestId=null;
     refreshAll();
     renderParticipant();
