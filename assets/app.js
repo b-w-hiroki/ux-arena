@@ -536,7 +536,7 @@ function renderHistory(){
   if(!rows.length){box.innerHTML='<div class="empty">まだ回答がありません</div>';return}
   box.innerHTML=rows.map(s=>{
     const t=state.tests.find(x=>x.id===s.testId);
-    return `<div class="listitem"><b>${esc(t?t.name:'削除済みテスト')}</b><div class="small">${s.selected||'—'}選択 · ${((s.elapsed||0)/1000).toFixed(1)}s · ${s.agree?'主観一致':'主観不一致'}</div></div>`;
+    return `<div class="listitem"><b>${esc(t?t.name:'削除済みテスト')}</b><div class="small">${esc(s.selected||'—')}選択 · ${((s.elapsed||0)/1000).toFixed(1)}s · ${s.agree?'主観一致':'主観不一致'}</div></div>`;
   }).join('');
 }
 
@@ -1115,6 +1115,18 @@ $('#createSuggestedTest').onclick=()=>{
 };
 
 
+// Reject malformed records before changing state or persistent storage.
+function validImportedState(data){
+  const obj=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
+  const str=x=>typeof x==='string';
+  if(!obj(data)||!Array.isArray(data.tests)||!Array.isArray(data.sessions))return false;
+  if(!data.tests.every(t=>obj(t)&&str(t.id)&&str(t.name)))return false;
+  if(!data.sessions.every(s=>obj(s)&&str(s.testId)&&
+    (s.selected==null||s.selected===''||s.selected==='A'||s.selected==='B')&&
+    (s.elapsed==null||typeof s.elapsed==='number'&&Number.isFinite(s.elapsed)&&s.elapsed>=0)))return false;
+  return ['decisionLog','snapshots','backups'].every(k=>data[k]==null||Array.isArray(data[k])&&data[k].every(obj));
+}
+
 $('#importDataBtn').onclick=()=>$('#importDataFile').click();
 $('#importDataFile').onchange=async(e)=>{
   const file=e.target.files&&e.target.files[0];
@@ -1122,7 +1134,7 @@ $('#importDataFile').onchange=async(e)=>{
   try{
     const text=await file.text();
     const parsed=JSON.parse(text);
-    if(!parsed || !Array.isArray(parsed.tests) || !Array.isArray(parsed.sessions)){
+    if(!validImportedState(parsed)){
       toast('UX ARENA形式のJSONではありません');
       return;
     }
