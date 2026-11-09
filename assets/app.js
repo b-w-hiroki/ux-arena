@@ -237,7 +237,7 @@ function renderAdminTests(){
  normalizeAllStatuses();
  renderAdminDashboard();
  const box=$('#adminTestList');$('#testCount').textContent=state.tests.length;
- box.innerHTML=state.tests.length?state.tests.map(t=>`<div class="listitem"><div class="option"><div><b>${esc(t.name)}</b><div class="small">${esc(t.metric)} · v${t.version||1} · ${completedSessionsFor(t.id).length}回答 / ${t.targetResponses||30} · ${esc(t.type)}${t.winner?` · Winner ${t.winner}`:''}</div>${t.hypothesis?`<div class="small">仮説: ${esc(t.hypothesis)}</div>`:''}<div class="small">主指標: ${esc(metricLabel(t.successMetric))} · MDE ${t.minimumDetectableEffect||15}pt · Guardrail ${esc(t.guardrailMetric||'misclick')}</div>${tagList(t).length?`<div class="meta" style="margin-top:6px">${tagList(t).map(x=>`<span class="badge">${esc(x)}</span>`).join('')}</div>`:''}</div><span class="status">${statusLabel(t)}</span></div><div class="inline-actions"><button class="secondary toggle" data-id="${esc(t.id)}" type="button">${t.status==='running'?'停止':t.status==='completed'?'再開':'公開'}</button><button class="secondary archive" data-id="${esc(t.id)}" type="button">${t.status==='archived'?'戻す':'保管'}</button>${t.winner && t.winner!=='draw'?`<button class="secondary adopt" data-id="${esc(t.id)}" type="button">${t.adoptedWinner?'採用済み':'勝者を採用'}</button>`:''}<button class="secondary clone" data-id="${esc(t.id)}" type="button">複製</button><button class="danger del" data-id="${esc(t.id)}" type="button">削除</button></div></div>`).join(''):'<div class="empty">テストがありません</div>';
+ box.innerHTML=state.tests.length?state.tests.map(t=>`<div class="listitem"><div class="option"><div><b>${esc(t.name)}</b><div class="small">${esc(t.metric)} · v${esc(t.version||1)} · ${completedSessionsFor(t.id).length}回答 / ${esc(t.targetResponses||30)} · ${esc(t.type)}${t.winner?` · Winner ${esc(t.winner)}`:''}</div>${t.hypothesis?`<div class="small">仮説: ${esc(t.hypothesis)}</div>`:''}<div class="small">主指標: ${esc(metricLabel(t.successMetric))} · MDE ${esc(t.minimumDetectableEffect||15)}pt · Guardrail ${esc(t.guardrailMetric||'misclick')}</div>${tagList(t).length?`<div class="meta" style="margin-top:6px">${tagList(t).map(x=>`<span class="badge">${esc(x)}</span>`).join('')}</div>`:''}</div><span class="status">${statusLabel(t)}</span></div><div class="inline-actions"><button class="secondary toggle" data-id="${esc(t.id)}" type="button">${t.status==='running'?'停止':t.status==='completed'?'再開':'公開'}</button><button class="secondary archive" data-id="${esc(t.id)}" type="button">${t.status==='archived'?'戻す':'保管'}</button>${t.winner && t.winner!=='draw'?`<button class="secondary adopt" data-id="${esc(t.id)}" type="button">${t.adoptedWinner?'採用済み':'勝者を採用'}</button>`:''}<button class="secondary clone" data-id="${esc(t.id)}" type="button">複製</button><button class="danger del" data-id="${esc(t.id)}" type="button">削除</button></div></div>`).join(''):'<div class="empty">テストがありません</div>';
  $$('.toggle').forEach(b=>b.onclick=()=>{const t=state.tests.find(x=>x.id===b.dataset.id);if(!t)return;
  if(t.status!=='running'){const r=publishReadiness(t);if(!r.ok&&!confirm('公開前チェックに未達があります：\n・'+r.issues.join('\n・')+'\n\nこのまま公開しますか？'))return;}
    const before=JSON.stringify(state);
@@ -536,7 +536,7 @@ function renderHistory(){
   if(!rows.length){box.innerHTML='<div class="empty">まだ回答がありません</div>';return}
   box.innerHTML=rows.map(s=>{
     const t=state.tests.find(x=>x.id===s.testId);
-    return `<div class="listitem"><b>${esc(t?t.name:'削除済みテスト')}</b><div class="small">${s.selected||'—'}選択 · ${((s.elapsed||0)/1000).toFixed(1)}s · ${s.agree?'主観一致':'主観不一致'}</div></div>`;
+    return `<div class="listitem"><b>${esc(t?t.name:'削除済みテスト')}</b><div class="small">${esc(s.selected||'—')}選択 · ${((s.elapsed||0)/1000).toFixed(1)}s · ${s.agree?'主観一致':'主観不一致'}</div></div>`;
   }).join('');
 }
 
@@ -702,7 +702,7 @@ function renderBenchmark(){
   box.innerHTML=rows.slice(0,5).map((r,i)=>{
     const deltaScore=r.score-best.score;
     const deltaSpeed=(best.speed&&r.speed)?Math.round((r.speed-best.speed)/100)/10:null;
-    return `<div class="listitem"><div class="option"><div><b>${i+1}. ${esc(r.t.name)}</b><div class="small">Score ${r.score} · Health ${r.health} · Winner ${r.winner}</div></div><span class="status">${i===0?'BEST':(deltaScore===0?'±0':deltaScore)}</span></div>${deltaSpeed!==null?`<div class="small">Best比 決定時間 ${deltaSpeed>0?'+':''}${deltaSpeed}s</div>`:''}</div>`;
+    return `<div class="listitem"><div class="option"><div><b>${i+1}. ${esc(r.t.name)}</b><div class="small">Score ${r.score} · Health ${r.health} · Winner ${esc(r.winner)}</div></div><span class="status">${i===0?'BEST':(deltaScore===0?'±0':deltaScore)}</span></div>${deltaSpeed!==null?`<div class="small">Best比 決定時間 ${deltaSpeed>0?'+':''}${deltaSpeed}s</div>`:''}</div>`;
   }).join('');
 }
 function renderTemplateLibrary(){
@@ -1115,32 +1115,65 @@ $('#createSuggestedTest').onclick=()=>{
 };
 
 
+// Reject malformed records before changing state or persistent storage.
+function validImportedState(data){
+  const obj=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
+  const str=x=>typeof x==='string';
+  const num=x=>typeof x==='number'&&Number.isFinite(x)&&x>=0;
+  const fields=(x,keys,check)=>keys.every(k=>x[k]==null||check(x[k]));
+  const list=(v,check)=>Array.isArray(v)&&v.every(check);
+  const log=x=>obj(x)&&fields(x,['id','testId','label','detail','ts','event'],str);
+  const test=x=>obj(x)&&str(x.id)&&str(x.name)&&
+    fields(x,['task','title','metric','type','status','hypothesis','successMetric','guardrailMetric','adoptedAt','completedAt','runEpoch'],str)&&
+    fields(x,['version','targetResponses','minimumDetectableEffect'],num)&&
+    fields(x,['winner','adoptedWinner'],v=>['','A','B','draw'].includes(v))&&
+    fields(x,['published','pausedRun'],v=>typeof v==='boolean')&&
+    fields(x,['tags'],v=>str(v)||list(v,str))&&fields(x,['history'],v=>list(v,log));
+  const session=x=>obj(x)&&str(x.testId)&&
+    fields(x,['id','participantId','ts','status','experience','device','runEpoch','chosenSide'],str)&&
+    fields(x,['selected','pref','firstTouch','leftVariant','rightVariant'],v=>['','A','B'].includes(v))&&
+    fields(x,['elapsed','taps','misclicks','hesitation','firstActionMs','postFirstDecisionMs','confidence','qualityScore','runnerVersion'],num)&&
+    fields(x,['agree','qualityValid','within10s','timeout'],v=>typeof v==='boolean')&&
+    fields(x,['qualityReasons'],v=>list(v,str));
+  const snapshot=x=>obj(x)&&Array.isArray(x.tests)&&fields(x,['ts','analysisFilter','qualityFilter'],str);
+  const backup=x=>obj(x)&&fields(x,['ts','reason'],str)&&
+    fields(x,['tests'],v=>list(v,test))&&fields(x,['sessions'],v=>list(v,session))&&
+    fields(x,['decisionLog'],v=>list(v,log))&&fields(x,['snapshots'],v=>list(v,snapshot));
+  return obj(data)&&list(data.tests,test)&&list(data.sessions,session)&&
+    fields(data,['decisionLog'],v=>list(v,log))&&fields(data,['snapshots'],v=>list(v,snapshot))&&fields(data,['backups'],v=>list(v,backup));
+}
+
 $('#importDataBtn').onclick=()=>$('#importDataFile').click();
 $('#importDataFile').onchange=async(e)=>{
   const file=e.target.files&&e.target.files[0];
   if(!file)return;
+  let committed=false;
   try{
+    if(file.size>10*1024*1024)throw new Error('backup too large');
     const text=await file.text();
     const parsed=JSON.parse(text);
-    if(!parsed || !Array.isArray(parsed.tests) || !Array.isArray(parsed.sessions)){
+    if(!validImportedState(parsed)){
       toast('UX ARENA形式のJSONではありません');
       return;
     }
     const currentId=state.participantId;
-    state={
+    const next={
       participantId:currentId||parsed.participantId||uid(),
       profile:state.profile||parsed.profile||{experience:'standard',device:detectDevice()},
       tests:parsed.tests,
       sessions:parsed.sessions,
       decisionLog:Array.isArray(parsed.decisionLog)?parsed.decisionLog:[],snapshots:Array.isArray(parsed.snapshots)?parsed.snapshots:[],backups:Array.isArray(parsed.backups)?parsed.backups:[]
     };
-    save();
+    if(pendingRecovery) throw new Error("pending recovery");
+    localStorage.setItem(STORAGE,JSON.stringify(next));
+    state=next;
+    committed=true;
     currentTestId=null;
     refreshAll();
     renderParticipant();
     toast('データを読み込みました');
   }catch(err){
-    toast('JSONの読み込みに失敗しました');
+    toast(committed?'データは保存しましたが画面更新に失敗しました。バックアップを保管して再読み込みしてください':'JSONを読み込めませんでした。保存済みデータは変更していません');
   }finally{
     e.target.value='';
   }
