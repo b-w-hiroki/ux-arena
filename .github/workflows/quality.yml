@@ -11,8 +11,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install
-      - run: npx playwright install --with-deps chromium
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci --no-audit
+      - run: npm exec --no -- playwright install --with-deps chromium
       - run: npm run verify
       - if: always()
         uses: actions/upload-artifact@v4
