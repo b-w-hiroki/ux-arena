@@ -16,7 +16,7 @@
 
 ## 検証
 
-`npm install` → `npx playwright install chromium` → `npm run verify`。
+`npm ci --no-audit` → `npm exec --no -- playwright install chromium` → `npm run verify`。
 JS構文、統計回帰、390×844 / 320×568の5試行・保存復旧・管理集計JSONを検証します。スクリーンショットは `test-results/` に保存します。
 
 変更はPR・CIを通してmainへ統合します。
@@ -34,11 +34,11 @@ UX ARENA は、スマホUIの2案（A/B）を「どちらが直感的に操作�
 
 ## Playwrightテストの回し方
 
-前提：Node.js と npm。初回は依存関係とブラウザを取得します。
+前提：Node.js 22（CIと同じ）と npm。初回はコミット済みの `package-lock.json` から依存関係と対応ブラウザを取得します。
 
 ```bash
-npm install
-npx playwright install chromium
+npm ci --no-audit
+npm exec --no -- playwright install chromium
 ```
 
 一括検証（JS構文チェック＋統計回帰＋E2E）は次の1コマンドです。これがCIと同じ入口です。
@@ -75,3 +75,9 @@ E2Eだけを回す場合は `npm run test:e2e` で足ります。設定は `play
 - 保存できなければ追加扱いにせず、元の状態を保持します。元ファイルを保管して再試行してください。
 - 既存の管理画面「JSON読み込み」はバックアップ全体の復元で、本機能の追記とは別です。
 - 同じ実験IDで古い定義がある参加者端末では、別ブラウザプロファイルを使ってください。既存回答は削除しません。
+
+## 依存関係の再現性
+
+`package-lock.json`（lockfileVersion 3）で Playwright 本体と推移依存のバージョン・配布物のintegrityを固定します。通常のセットアップとCIは `npm ci --no-audit` を使用し、lockfileとpackage.jsonが不一致なら失敗させます。ブラウザ取得もローカルにインストール済みのPlaywright CLIを使用し、未導入時に別バージョンを自動取得しません。
+
+依存更新時だけ `npm install --package-lock-only --ignore-scripts --no-audit` 等でlockfileを更新し、`npm ci --no-audit` と `npm run verify` を通して両ファイルをPRで確認します。レジストリの通常メタデータ・パッケージ取得は行いますが、`.npmrc` で自動auditを無効化しています。これは脆弱性がないという保証ではなく、外部auditへの依存情報送信は別途承認のある工程として扱います。
